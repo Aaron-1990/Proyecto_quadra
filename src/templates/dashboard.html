@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Quadra{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    {/* Barra de navegación */}
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="text-2xl font-bold text-orange-600">Quadra</div>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-600">
+                    Bienvenido, {{ current_user.username }}
+                </span>
+                <a href="{{ url_for('auth.logout') }}" 
+                   class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                    Cerrar Sesión
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-[calc(100vh-64px)]">
+        {/* Sidebar */}
+        <div class="w-96 bg-white shadow-lg p-4 overflow-y-auto">
+            {/* Buscador */}
+            <div class="mb-6">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Buscar puestos..."
+                    class="w-full p-3 border rounded-lg"
+                />
+            </div>
+
+            {/* Filtro de tipo de comida */}
+            <div class="mb-6">
+                <select id="foodTypeFilter" class="w-full p-3 border rounded-lg">
+                    <option value="">Todos los tipos de comida</option>
+                    {% for type in food_types %}
+                        <option value="{{ type }}">{{ type|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {/* Botón para agregar */}
+            <a href="{{ url_for('spots.create') }}" 
+               class="block w-full mb-6 p-3 bg-orange-600 text-white text-center rounded-lg hover:bg-orange-700">
+                Agregar Nuevo Puesto
+            </a>
+
+            {/* Lista de puestos */}
+            <div id="spotsList" class="space-y-4">
+                {% if spots %}
+                    {% for spot in spots %}
+                    <a href="{{ url_for('spots.show', id=spot.id) }}" 
+                       class="block bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors spot-card"
+                       data-food-type="{{ spot.food_type }}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold">{{ spot.name }}</h3>
+                                <p class="text-sm text-gray-600">{{ spot.food_type|title }}</p>
+                                <div class="flex items-center mt-1">
+                                    <span class="text-sm text-gray-600">
+                                        {{ spot.opening_hours }} - {{ spot.closing_hours }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% if spot.photos %}
+                                <img src="{{ url_for('static', filename='uploads/' + spot.photos[0].url) }}"
+                                     alt="{{ spot.name }}"
+                                     class="w-20 h-20 rounded-lg object-cover">
+                            {% else %}
+                                <div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <span class="text-gray-400">Sin foto</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-gray-500 py-8">
+                        No hay puestos registrados aún
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {/* Área del mapa */}
+        <div class="flex-1 bg-gray-200 p-4">
+            {/* Contenedor blanco que envuelve tanto los controles como el mapa */}
+            <div class="bg-white h-full rounded-lg p-4">
+                {/* Sección de controles del mapa */}
+                <div class="mb-4 flex justify-between items-center">
+                    {/* Controles del lado izquierdo */}
+                    <div class="flex items-center space-x-4">
+                        <button id="locationButton" class="px-4 py-2 bg-gray-100 rounded-lg transition-colors hover:bg-gray-200">
+                            Mi ubicación
+                        </button>
+                        <select id="mapFoodTypeFilter" class="px-4 py-2 border rounded-lg">
+                            <option value="">Todos los tipos</option>
+                            {% for type in food_types %}
+                                <option value="{{ type }}">{{ type|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    {/* Controles del lado derecho */}
+                    <div class="flex items-center space-x-4">
+                        <button class="px-4 py-2 bg-gray-100 rounded-lg transition-colors hover:bg-gray-200">
+                            Filtros
+                        </button>
+                        <select id="sortFilter" class="px-4 py-2 border rounded-lg">
+                            <option>Mejor valorados</option>
+                            <option>Más cercanos</option>
+                            <option>Más populares</option>
+                        </select>
+                    </div>
+                </div>
+        
+                {/* Contenedor del mapa con posicionamiento relativo para el mapa absoluto */}
+                <div class="relative h-[calc(100%-64px)]">
+                    {/* El div del mapa en sí, posicionado absolutamente para llenar el contenedor */}
+                    <div id="map" class="absolute inset-0 bg-gray-100 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- Cierre del div flex -->
+</div> <!-- Cierre del div min-h-screen -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Diagnóstico inicial
+    const mapElement = document.getElementById('map');
+    console.log('Elemento del mapa:', mapElement);
+    console.log('Dimensiones del mapa:', {
+        width: mapElement.offsetWidth,
+        height: mapElement.offsetHeight
+    });
+    
+    try {
+        // Inicializar el mapa con opciones más específicas
+        const map = L.map('map', {
+            center: [19.4326, -99.1332],
+            zoom: 13,
+            zoomControl: true,
+            preferCanvas: true,
+            wheelDebounceTime: 150
+        });
+        
+        console.log('Mapa inicializado');
+        
+        // Añadir la capa base con más opciones de configuración
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            minZoom: 4,
+            attribution: '© OpenStreetMap contributors',
+            tileSize: 256,
+            updateWhenIdle: true,
+            updateWhenZooming: false
+        }).addTo(map);
+        
+        console.log('Capa base añadida');
+
+        // Usar un objeto para almacenar los marcadores y contador
+        const markersMap = new Map();
+        let markersCount = 0;
+
+        // Función para sincronizar los selectores de tipo de comida
+        function syncFoodTypeSelectors(sourceId) {
+            const sidebarSelector = document.getElementById('foodTypeFilter');
+            const mapSelector = document.getElementById('mapFoodTypeFilter');
+            
+            if (sourceId === 'foodTypeFilter') {
+                mapSelector.value = sidebarSelector.value;
+            } else {
+                sidebarSelector.value = mapSelector.value;
+            }
+        }
+
+        // Función para filtrar spots
+        function filterSpots(sourceId) {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const foodTypeFilter = document.getElementById('foodTypeFilter').value.toLowerCase();
+            
+            // Sincronizar selectores si el cambio vino de uno de ellos
+            if (sourceId && sourceId.includes('FoodType')) {
+                syncFoodTypeSelectors(sourceId);
+            }
+            
+            // Filtrar spots en la lista lateral
+            document.querySelectorAll('.spot-card').forEach(card => {
+                const foodType = card.dataset.foodType.toLowerCase();
+                const name = card.querySelector('h3').textContent.toLowerCase();
+                
+                const matchesSearch = name.includes(searchInput);
+                const matchesType = !foodTypeFilter || foodType === foodTypeFilter;
+                
+                card.style.display = (matchesSearch && matchesType) ? 'block' : 'none';
+            });
+            
+            // Filtrar marcadores en el mapa
+            markersMap.forEach((data, id) => {
+                const matchesSearch = data.name.includes(searchInput);
+                const matchesType = !foodTypeFilter || data.foodType === foodTypeFilter;
+                
+                if (matchesSearch && matchesType) {
+                    if (!map.hasLayer(data.marker)) {
+                        map.addLayer(data.marker);
+                    }
+                } else {
+                    if (map.hasLayer(data.marker)) {
+                        map.removeLayer(data.marker);
+                    }
+                }
+            });
+            
+            // Ajustar el zoom del mapa para mostrar todos los marcadores visibles
+            const visibleMarkers = Array.from(markersMap.values())
+                .filter(data => map.hasLayer(data.marker))
+                .map(data => data.marker);
+            
+            if (visibleMarkers.length > 0) {
+                const group = L.featureGroup(visibleMarkers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        {% for spot in spots %}
+            {% if spot.latitude and spot.longitude %}
+                try {
+                    // Crear marcador para cada spot
+                    const marker = L.marker([{{ spot.latitude }}, {{ spot.longitude }}])
+                        .bindPopup(`
+                            <div class="spot-popup">
+                                <h3 class="font-bold text-lg mb-2">{{ spot.name }}</h3>
+                                <p class="text-gray-600 mb-1">{{ spot.food_type }}</p>
+                                <p class="text-sm mb-1">{{ spot.opening_hours }} - {{ spot.closing_hours }}</p>
+                                <p class="text-sm mb-2">{{ spot.location }}</p>
+                                <a href="{{ url_for('spots.show', id=spot.id) }}" 
+                                   class="inline-block text-orange-600 hover:text-orange-700 font-medium">
+                                    Ver detalles
+                                </a>
+                            </div>
+                        `, {
+                            maxWidth: 300,
+                            minWidth: 200,
+                            autoPan: true,
+                            closeButton: true
+                        });
+                    
+                    marker.addTo(map);
+                    markersMap.set("{{ spot.id }}", {
+                        marker: marker,
+                        name: "{{ spot.name }}".toLowerCase(),
+                        foodType: "{{ spot.food_type }}".toLowerCase()
+                    });
+                    markersCount++;
+                    console.log(`Marcador añadido para: {{ spot.name }}`);
+                } catch (markerError) {
+                    console.error(`Error al añadir marcador para {{ spot.name }}:`, markerError);
+                }
+            {% endif %}
+        {% endfor %}
+
+        console.log(`Total de marcadores añadidos: ${markersCount}`);
+
+        // Si hay marcadores, ajustamos el zoom para mostrarlos todos
+        if (markersCount > 0) {
+            const markers = Array.from(markersMap.values()).map(m => m.marker);
+            const group = L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        // Agregar event listeners para los filtros
+        document.getElementById('searchInput').addEventListener('input', () => filterSpots('searchInput'));
+        document.getElementById('foodTypeFilter').addEventListener('change', () => filterSpots('foodTypeFilter'));
+        document.getElementById('mapFoodTypeFilter').addEventListener('change', () => filterSpots('mapFoodTypeFilter'));
+
+        // Inicializar los filtros al cargar
+        filterSpots();
+
+        // Manejo de la geolocalización
+        const locationButton = document.getElementById('locationButton');
+        if (locationButton) {
+            locationButton.addEventListener('click', function() {
+                if (!this.disabled && "geolocation" in navigator) {
+                    this.disabled = true;
+                    this.textContent = 'Buscando ubicación...';
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        position => {
+                            const {latitude, longitude} = position.coords;
+                            map.setView([latitude, longitude], 15);
+                            L.marker([latitude, longitude], {
+                                title: 'Tu ubicación',
+                                zIndexOffset: 1000
+                            })
+                            .addTo(map)
+                            .bindPopup('Tu ubicación actual');
+                            this.disabled = false;
+                            this.textContent = 'Mi ubicación';
+                        },
+                        error => {
+                            console.error('Error de geolocalización:', error);
+                            this.disabled = false;
+                            this.textContent = 'Mi ubicación';
+                            alert('No se pudo obtener tu ubicación');
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 0
+                        }
+                    );
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error('Error al inicializar el mapa:', error);
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.innerHTML = `
+                <div class="flex items-center justify-center h-full">
+                    <p class="text-red-600">Error al cargar el mapa. Por favor, recarga la página.</p>
+                </div>
+            `;
+        }
+    }
+});
+    </script>
+{% endblock %}

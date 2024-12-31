@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# .gitignore
+src/static/uploads/*
+!src/static/uploads/.gitkeep
+
+# Entorno virtual (por si acaso)
+venv/
+env/
+
+# Variables de entorno
+.env
+.env.local
+
+# Base de datos
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Sistema
+.DS_Store
+Thumbs.db

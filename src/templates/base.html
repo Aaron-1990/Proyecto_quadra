@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}Quadra{% endblock %}</title>
+        
+        <!-- 1. Primero Tailwind -->
+        <script src="https://cdn.tailwindcss.com"></script>
+
+        <!-- 2. Luego Leaflet CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+              integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+              crossorigin=""/>
+        
+        <!-- 3. Nuestros estilos CSS -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+        
+        <!-- 4. Finalmente Leaflet JavaScript -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+                crossorigin="" defer></script>
+    </head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Contenedor de mensajes flash mejorado -->
+    <div class="fixed top-4 right-4 z-50">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message mb-4 p-4 rounded-lg shadow-lg transition-opacity duration-500 {% if category == 'error' %}bg-red-100 text-red-700{% elif category == 'success' %}bg-green-100 text-green-700{% elif category == 'warning' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    {% block content %}{% endblock %}
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+
+    <!-- Script para auto-ocultar mensajes flash -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(message => {
+                setTimeout(() => {
+                    message.style.opacity = '0';
+                    setTimeout(() => message.remove(), 500);
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>

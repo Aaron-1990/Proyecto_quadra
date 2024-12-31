@@ -1,33 +1,47 @@
 # Quadra - Descubre la Mejor Comida Callejera
 
-Quadra es una aplicación web que permite a los usuarios descubrir, calificar y compartir puestos de comida callejera. La plataforma facilita la conexión entre amantes de la comida callejera y los mejores puestos de su área, creando una comunidad activa de entusiastas gastronómicos.
+Quadra es una aplicación web que permite a los usuarios descubrir, calificar y compartir puestos de comida callejera. La plataforma facilita la conexión entre amantes de la comida callejera y los mejores puestos de su área.
 
-## Características Principales
+## Características Implementadas
 
-La aplicación ofrece las siguientes funcionalidades:
-
-- Geolocalización de puestos de comida con mapas interactivos
+- Sistema de autenticación completo (registro e inicio de sesión)
+- Geolocalización de puestos de comida con mapas interactivos usando Leaflet
 - Sistema de reseñas y calificaciones
 - Galería de fotos para cada puesto
-- Perfiles de usuario personalizados
-- Búsqueda avanzada por tipo de comida y ubicación
-- Interfaz responsive adaptable a diferentes dispositivos
+- Búsqueda y filtrado de puestos por tipo de comida
+- Visualización de ubicación actual del usuario
+- Interfaz responsive con Tailwind CSS
 
 ## Requisitos Previos
 
-Para ejecutar Quadra en su entorno local, necesitará:
+Para ejecutar Quadra necesitará:
 
-- Python 3.8 o superior
-- PostgreSQL 12 o superior
+- Python 3.10 o superior
+- SQLite (incluido en Python)
 - pip (gestor de paquetes de Python)
+- Navegador web moderno con soporte para geolocalización
+- Conexión a Internet (para cargar mapas y estilos)
 
-## Instrucciones de Ejecución
+## Dependencias Externas (CDN)
 
-Siga estos pasos para ejecutar el proyecto en su entorno local:
+El proyecto utiliza las siguientes bibliotecas que se cargan automáticamente vía CDN:
+
+- **Tailwind CSS v3.x**
+  - CDN: https://cdn.tailwindcss.com
+  - Uso: Framework CSS para estilos y diseño responsive
+
+- **Leaflet v1.9.4**
+  - CSS: https://unpkg.com/leaflet@1.9.4/dist/leaflet.css
+  - JavaScript: https://unpkg.com/leaflet@1.9.4/dist/leaflet.js
+  - Uso: Visualización y manejo de mapas interactivos
+
+Estas dependencias se cargan automáticamente desde los CDN y no requieren instalación local.
+
+## Instrucciones de Instalación y Ejecución
 
 1. Clone el repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/quadra.git
+   git clone <URL-del-repositorio>
    cd quadra
    ```
 
@@ -36,7 +50,7 @@ Siga estos pasos para ejecutar el proyecto en su entorno local:
    python -m venv venv
 
    # En Windows:
-   .\venv\Scripts\activate
+   venv\Scripts\activate
 
    # En Unix o MacOS:
    source venv/bin/activate
@@ -47,72 +61,102 @@ Siga estos pasos para ejecutar el proyecto en su entorno local:
    pip install -r requirements.txt
    ```
 
-4. Configure la base de datos:
-   ```sql
-   CREATE DATABASE quadra;
-   ```
-
-5. Configure las variables de entorno:
-   ```bash
-   # Copie el archivo de ejemplo
-   cp .env.example .env
-
-   # Edite el archivo .env con sus configuraciones
-   # DATABASE_URL=postgresql://usuario:contraseña@localhost/quadra
-   ```
-
-6. Inicialice la base de datos:
+4. Inicialice la base de datos:
    ```bash
    flask db upgrade
    ```
 
-7. Ejecute la aplicación:
+5. Ejecute la aplicación:
    ```bash
-   flask run
+   python src/run.py
    ```
 
-La aplicación estará disponible en `http://localhost:5000`
+La aplicación estará disponible en `http://127.0.0.1:5000/`
 
 ## Estructura del Proyecto
 
 ```
 quadra/
-├── app/
+├── src/
 │   ├── __init__.py
-│   ├── models/          # Modelos de la base de datos
-│   ├── routes/          # Rutas y controladores
+│   ├── models/          # Modelos de la base de datos (User, Spot, Review, Photo)
+│   ├── routes/          # Rutas (auth, spots, main)
 │   ├── templates/       # Plantillas HTML
-│   └── static/          # Archivos estáticos
-├── migrations/          # Migraciones de la base de datos
-├── tests/              # Pruebas unitarias
-├── config.py           # Configuración del proyecto
-├── requirements.txt    # Dependencias del proyecto
-└── run.py             # Punto de entrada de la aplicación
+│   │   ├── auth/       # Plantillas de autenticación
+│   │   ├── spots/      # Plantillas de puestos
+│   │   └── base.html   # Plantilla base
+│   └── static/         # Archivos estáticos (CSS, JS, imágenes)
+├── migrations/         # Migraciones de la base de datos
+├── docs/              # Documentación
+├── tests/             # Pruebas
+├── config.py         # Configuración
+└── requirements.txt  # Dependencias
 ```
 
-## Uso del Sistema
+## Funcionalidades Principales
 
-Una vez que la aplicación esté en ejecución, podrá:
+1. **Sistema de Usuarios**
+   - Registro de nuevos usuarios
+   - Inicio de sesión
+   - Persistencia de sesiones
 
-1. Crear una cuenta de usuario nueva
-2. Explorar puestos de comida en el mapa
-3. Ver detalles de cada puesto
-4. Agregar reseñas y calificaciones
-5. Subir fotos de los puestos
-6. Buscar puestos por tipo de comida o ubicación
+2. **Gestión de Puestos**
+   - Creación de nuevos puestos
+   - Carga de múltiples fotos
+   - Geolocalización precisa
+   - Información detallada (horarios, tipo de comida)
 
-## Problemas Comunes
+3. **Sistema de Reseñas**
+   - Calificación con estrellas (1-5)
+   - Comentarios detallados
+   - Promedio de calificaciones
+   - Validación para evitar reseñas duplicadas
 
-Si encuentra algún problema durante la instalación o ejecución:
+4. **Búsqueda y Filtrado**
+   - Filtro por tipo de comida
+   - Búsqueda por nombre
+   - Visualización en mapa
+   - Lista de resultados actualizada en tiempo real
 
-1. Asegúrese de que todas las dependencias estén instaladas correctamente
-2. Verifique que PostgreSQL esté en ejecución
-3. Confirme que las variables de entorno estén configuradas correctamente
-4. Revise que el puerto 5000 esté disponible
+## Observaciones para la Evaluación
 
-## Contacto
+1. **Base de Datos**
+   - El proyecto usa SQLite por simplicidad
+   - La base de datos se crea automáticamente en `src/quadra.db`
+   - Las migraciones están incluidas en el directorio `migrations/`
 
-Para cualquier consulta sobre el proyecto, puede contactar a:
+2. **Archivos Estáticos**
+   - Las imágenes subidas se guardan en `src/static/uploads/`
+   - Se incluyen algunas imágenes de ejemplo
 
-[Tu Nombre]
-Correo: [tu-correo@ejemplo.com]
+3. **Dependencias Externas**
+   - Leaflet para mapas
+   - Tailwind CSS para estilos
+   - Flask y sus extensiones para el backend
+
+## Solución de Problemas Comunes
+
+1. **Error al crear la base de datos**
+   - Asegúrese de tener permisos de escritura en el directorio `src/`
+   - Ejecute `flask db upgrade` para aplicar las migraciones
+
+2. **Problemas con las imágenes**
+   - Verifique que existe el directorio `src/static/uploads/`
+   - Asegúrese de tener permisos de escritura en ese directorio
+
+3. **Error en el mapa**
+   - Verifique su conexión a internet (necesaria para cargar Leaflet)
+   - Permita el acceso a su ubicación en el navegador
+   - Si el mapa no carga, verifique la consola del navegador para errores
+
+4. **Problemas con los estilos**
+   - Verifique su conexión a internet (necesaria para cargar Tailwind CSS)
+   - Si los estilos no cargan, intente limpiar la caché del navegador
+
+## Contacto y Soporte
+
+Para cualquier consulta sobre el proyecto o problemas de ejecución, puede contactar a:
+
+[Aaron Zapata Trejo]
+Matrícula: [2312055]
+Correo: [aaron2312055@hybridge.education]

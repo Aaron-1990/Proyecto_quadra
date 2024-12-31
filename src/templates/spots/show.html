@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 relative z-0">
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="bg-white rounded-lg shadow-lg">
+            <!-- Header -->
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2">{{ spot.name }}</h1>
+                        <div class="flex items-center space-x-4">
+                            <p class="text-gray-600">{{ spot.food_type }}</p>
+                            <div class="flex items-center">
+                                <div class="text-yellow-400">
+                                    {% for i in range(5) %}
+                                        {% if i < avg_rating|int %}
+                                            ★
+                                        {% else %}
+                                            ☆
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="ml-2 text-gray-600">({{ avg_rating }})</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('main.dashboard') }}" 
+                       class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        Volver al Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- Fotos -->
+            {% if spot.photos %}
+            <div class="grid grid-cols-4 gap-4 p-4">
+                <div class="col-span-2 row-span-2 h-80">
+                    <img src="{{ url_for('static', filename='uploads/' + spot.photos[0].url) }}"
+                         alt="Foto principal de {{ spot.name }}"
+                         class="w-full h-full object-cover rounded-lg">
+                </div>
+                {% for photo in spot.photos[1:5] %}
+                <div class="h-36">
+                    <img src="{{ url_for('static', filename='uploads/' + photo.url) }}"
+                         alt="Foto de {{ spot.name }}"
+                         class="w-full h-full object-cover rounded-lg">
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Detalles del puesto -->
+            <div class="p-6">
+                <!-- Información básica -->
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold mb-4">Información</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <span class="font-medium">Ubicación:</span>
+                            <p class="text-gray-600">{{ spot.location }}</p>
+                        </div>
+                        <div>
+                            <span class="font-medium">Descripción:</span>
+                            <p class="text-gray-600">{{ spot.description }}</p>
+                        </div>
+                        <div>
+                            <span class="font-medium">Horario:</span>
+                            <p class="text-gray-600">
+                                {{ spot.opening_hours }} - {{ spot.closing_hours }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mapa con altura controlada -->
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold mb-4">Ubicación</h2>
+                    <div class="relative w-full h-64">
+                        <div id="map" class="absolute inset-0 rounded-lg z-10"></div>
+                    </div>
+                </div>
+
+                <!-- Reseñas -->
+                <div>
+                    <h2 class="text-xl font-semibold mb-4">Reseñas</h2>
+                    
+                    {% if current_user.is_authenticated %}
+                        <!-- Formulario de reseña -->
+                        <div class="mb-8 bg-gray-50 p-6 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4">Deja tu reseña</h3>
+                            <form action="{{ url_for('spots.create_review', id=spot.id) }}" method="POST">
+                                {{ form.csrf_token }}
+                                <div class="flex items-center mb-4" id="rating-stars">
+                                    {% for i in range(5) %}
+                                        <span class="text-3xl cursor-pointer text-gray-300 hover:text-yellow-400 transition-colors"
+                                              data-rating="{{ i + 1 }}">★</span>
+                                    {% endfor %}
+                                    <input type="hidden" name="rating" id="rating-input" required>
+                                </div>
+                                <textarea name="comment"
+                                          class="w-full p-4 border rounded-lg mb-4"
+                                          placeholder="Comparte tu experiencia..."
+                                          required
+                                          rows="4"></textarea>
+                                <button type="submit" 
+                                        class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                                    Publicar Reseña
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    <!-- Lista de reseñas -->
+                    {% if reviews %}
+                        <div class="space-y-6">
+                            {% for review in reviews %}
+                            <div class="border-b pb-6">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-start">
+                                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 mr-4">
+                                            {{ review.user.username[:1].upper() }}
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold">{{ review.user.username }}</h4>
+                                            <div class="text-yellow-400">
+                                                {% for i in range(5) %}
+                                                    {% if i < review.rating %}
+                                                        ★
+                                                    {% else %}
+                                                        ☆
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                            <p class="text-gray-600 mt-2">{{ review.comment }}</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-gray-500 text-sm">
+                                        {{ review.created_at.strftime('%d/%m/%Y') }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-gray-600 text-center py-4">
+                            No hay reseñas aún. ¡Sé el primero en dejar una!
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar el mapa
+    const map = L.map('map').setView([{{ spot.latitude }}, {{ spot.longitude }}], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Agregar marcador del spot
+    L.marker([{{ spot.latitude }}, {{ spot.longitude }}])
+        .addTo(map)
+        .bindPopup('{{ spot.name }}');
+
+    // Sistema de calificación con estrellas
+    const ratingStars = document.querySelectorAll('#rating-stars span');
+    const ratingInput = document.getElementById('rating-input');
+    const reviewForm = document.querySelector('form');
+
+    // Validación del formulario
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(e) {
+            if (!ratingInput.value) {
+                e.preventDefault();
+                alert('Por favor, selecciona una calificación');
+            }
+        });
+    }
+
+    ratingStars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = this.dataset.rating;
+            ratingInput.value = rating;
+            
+            // Actualizar visualización de estrellas
+            ratingStars.forEach((s, index) => {
+                if (index < rating) {
+                    s.classList.remove('text-gray-300');
+                    s.classList.add('text-yellow-400');
+                } else {
+                    s.classList.remove('text-yellow-400');
+                    s.classList.add('text-gray-300');
+                }
+            });
+        });
+
+        // Efecto hover
+        star.addEventListener('mouseenter', function() {
+            const rating = this.dataset.rating;
+            ratingStars.forEach((s, index) => {
+                if (index < rating) {
+                    s.classList.add('text-yellow-400');
+                    s.classList.remove('text-gray-300');
+                }
+            });
+        });
+
+        star.addEventListener('mouseleave', function() {
+            const currentRating = ratingInput.value;
+            ratingStars.forEach((s, index) => {
+                if (index < currentRating) {
+                    s.classList.add('text-yellow-400');
+                    s.classList.remove('text-gray-300');
+                } else {
+                    s.classList.remove('text-yellow-400');
+                    s.classList.add('text-gray-300');
+                }
+            });
+        });
+    });
+
+    // Auto-ocultar mensajes flash después de 5 segundos
+    const flashMessages = document.querySelectorAll('.flash-message');
+    flashMessages.forEach(message => {
+        setTimeout(() => {
+            message.style.opacity = '0';
+            setTimeout(() => message.remove(), 500);
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}
